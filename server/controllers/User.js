@@ -11,6 +11,11 @@ export const UserRegister = async (req, res, next) => {
   try {
     const { email, password, name, img } = req.body;
 
+    // Add this validation
+    if (!name) {
+      return next(createError(400, "Name (username) is required."));
+    }
+
     // Check if the email is in use
     const existingUser = await User.findOne({ email }).exec();
     if (existingUser) {
