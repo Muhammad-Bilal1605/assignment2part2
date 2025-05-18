@@ -5,6 +5,7 @@ pipeline {
         DOCKER_COMPOSE_PROJECT = 'fitness-track-cicd'
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
         MONGO_URI = credentials('MONGO_URI')
+        JWT_SECRET = credentials('JWT_SECRET')
     }
 
     stages {
@@ -21,6 +22,7 @@ pipeline {
                     NODE_ENV=production
                     PORT=4001
                     MONGO_URI=${MONGO_URI}
+                    JWT_SECRET=${JWT_SECRET}
                     EOF
                 '''
             }
