@@ -30,16 +30,26 @@ pipeline {
 
         stage('Build and Start Containers') {
             steps {
-                sh 'docker-compose -p ${DOCKER_COMPOSE_PROJECT} -f ${DOCKER_COMPOSE_FILE} build'
+                sh 'docker-compose -p ${DOCKER_COMPOSE_PROJECT} -f ${DOCKER_COMPOSE_FILE} build --no-cache'
                 sh 'docker-compose -p ${DOCKER_COMPOSE_PROJECT} -f ${DOCKER_COMPOSE_FILE} up -d'
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh 'docker ps | grep fitness-track-cicd'
-                sh 'sleep 10'
-                sh 'curl -s http://localhost:4001 || true'
+                sh '''
+                    echo "Checking container status..."
+                    docker ps | grep ${DOCKER_COMPOSE_PROJECT}
+                    
+                    echo "Waiting for services to start..."
+                    sleep 15
+                    
+                    echo "Testing backend health..."
+                    curl -s http://localhost:4001/health || true
+                    
+                    echo "Testing frontend..."
+                    curl -s http://localhost:82 || true
+                '''
             }
         }
     }
@@ -47,13 +57,16 @@ pipeline {
     post {
         success {
             echo 'Deployment successful!'
+            sh 'docker-compose -p ${DOCKER_COMPOSE_PROJECT} -f ${DOCKER_COMPOSE_FILE} logs > docker-compose.log'
         }
         failure {
             echo 'Deployment failed!'
+            sh 'docker-compose -p ${DOCKER_COMPOSE_PROJECT} -f ${DOCKER_COMPOSE_FILE} logs > docker-compose.log'
             sh 'docker-compose -p ${DOCKER_COMPOSE_PROJECT} -f ${DOCKER_COMPOSE_FILE} down || true'
         }
         always {
             archiveArtifacts artifacts: 'docker-compose.log', allowEmptyArchive: true
+            cleanWs()
         }
     }
 } 

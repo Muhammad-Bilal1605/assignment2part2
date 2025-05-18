@@ -13,6 +13,11 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=example  # Change this in production!
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   
   # Backend Service
   backend:
@@ -22,7 +27,8 @@ services:
     container_name: cicd-fitness-backend
     restart: always
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - fitness-network
     ports:
@@ -36,6 +42,11 @@ services:
       - NODE_ENV=production
     env_file:
       - ./server/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Frontend Service
   frontend:
@@ -49,9 +60,15 @@ services:
     networks:
       - fitness-network
     ports:
-      - "82:80"  # Changed to port 82 as requested
+      - "82:80"
     volumes:
       - ./client:/app/code
+      - /app/code/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   fitness-network:
